@@ -1,4 +1,3 @@
-
 /*
  * communication.c
  *

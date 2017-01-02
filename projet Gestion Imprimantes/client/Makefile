@@ -1,6 +1,6 @@
-TARGET=serveur.out
+TARGET=client.out
 
-SOURCES= tmp_serveur.c ../communication/communication.c
+SOURCES= tmp_client.c ../communication/communication.c
 
 OBJECTS=$(SOURCES:.c=.o)
 

@@ -11,6 +11,7 @@
 #define SIZE_BUFFER 30
 #define MAX_NUMBER_INSTRUCTONS 100
 #define NUMBER_IMPRIMANTES 20
+#define SERVEUR_NAME "serveur"
 
 int pipe_envois[2];
 int pipe_retour[2];
@@ -35,8 +36,38 @@ void* gestion_instruction(){
 		write(pipe_envois[1], &i.id, sizeof(int));
 		write(pipe_envois[1], &i.n_printer, sizeof(int));
 		write(pipe_envois[1], &i.n_commande, sizeof(int));
-		write(pipe_envois[1], &i.texte, sizeof(char)*SIZE_BUFFER);
+		write(pipe_envois[1], i.texte, sizeof(char)*(SIZE_BUFFER - 4));
 		memset(buffer, 0, SIZE_BUFFER);
+	}
+}
+
+void* communication_envois(){
+	int result;
+	close(pipe_envois[1]);
+	close(pipe_retour[0]);
+	close(pipe_retour[1]);
+	Instruction i;
+	while(1){
+		read(pipe_envois[0], &i.id, sizeof(int));
+		read(pipe_envois[0], &i.n_printer, sizeof(int));
+		read(pipe_envois[0], &i.n_commande, sizeof(int));
+		read(pipe_envois[0], i.texte, sizeof(char)*(SIZE_BUFFER - 4));
+
+		result = envoyerOctets(i.n_printer, &i.id, sizeof(int));
+		if(result < 0){
+			perror("Erreur Envois Octets\n");
+			exit(1);
+		}
+		result = envoyerOctets(i.n_printer, &i.n_commande, sizeof(int));
+		if(result < 0){
+			perror("Erreur Envois Octets\n");
+			exit(1);
+		}
+		result = envoyerOctets(i.n_printer, i.texte, sizeof(char)*(SIZE_BUFFER - 4));
+		if(result < 0){
+			perror("Erreur Envois Octets\n");
+			exit(1);
+		}
 	}
 }
 
