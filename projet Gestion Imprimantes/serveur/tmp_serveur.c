@@ -26,14 +26,20 @@ void* gestion_instruction(){
 	char buffer[SIZE_BUFFER];
 	int n_instruction = 0;
 	while(1){
-		while(read(STDIN_FILENO, buffer, SIZE_BUFFER) <= 0);
-		Instruction i = {n_instruction, atoi(&buffer[0]), atoi(&buffer[2]), buffer + 4};
+		//while(read(STDIN_FILENO, buffer, SIZE_BUFFER) <= 0);
+		Instruction i ;//= {n_instruction, atoi(&buffer[0]), atoi(&buffer[2]), buffer + 4};
+		int tmp_n_commande;
+		i.texte = malloc(sizeof(char)*SIZE_BUFFER);
+		scanf("%d %d %s",&i.n_printer,&tmp_n_commande, i.texte);
+		i.n_commande = (commande) tmp_n_commande;
+		i.id = n_instruction;
 		tab_inst[n_instruction++] = i;
 		//printf("gi : %d %d %d %s\n", i.id, i.n_printer, i.n_commande, i.texte);
 		write(pipe_envois[1], &i.id, sizeof(int));
 		write(pipe_envois[1], &i.n_printer, sizeof(int));
 		write(pipe_envois[1], &i.n_commande, sizeof(int));
 		write(pipe_envois[1], i.texte, sizeof(char)*strlen(i.texte));
+		free(i.texte);
 		memset(buffer, 0, SIZE_BUFFER);
 	}
 }
@@ -41,12 +47,12 @@ void* gestion_instruction(){
 void* communication_envois(){
 	int result;
 	Instruction i;
-	i.texte = malloc(sizeof(char)*(SIZE_BUFFER - 4));
+	i.texte = malloc(sizeof(char)*SIZE_BUFFER);
 	while(1){
 		while(read(pipe_envois[0], &(i.id), sizeof(int)) <= 0 );
 		while(read(pipe_envois[0], &i.n_printer, sizeof(int)) <= 0);
 		while(read(pipe_envois[0], &i.n_commande, sizeof(int)) <= 0);
-		while(read(pipe_envois[0], i.texte, sizeof(char)*(SIZE_BUFFER - 4)) <= 0);
+		while(read(pipe_envois[0], i.texte, sizeof(char)*SIZE_BUFFER) <= 0);
 
 		result = envoyerOctets(i.n_printer, &i.id, sizeof(int));
 		if(result < 0){
@@ -63,6 +69,9 @@ void* communication_envois(){
 			perror("Erreur Envois Octets\n");
 			exit(1);
 		}
+
+		memset(i.texte, 0, sizeof(char)*SIZE_BUFFER);
+		printf("La requête %d a été envoyée.\n", i.id);
 	}
 	free(i.texte);
 }
