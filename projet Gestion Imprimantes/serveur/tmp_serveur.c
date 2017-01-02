@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 #include "../communication/communication.h"
 #include "../utils/utils.h"
@@ -15,6 +16,7 @@
 
 int pipe_envois[2];
 int pipe_retour[2];
+sem_t sem_pipe_retour;
 
 Instruction tab_inst[MAX_NUMBER_INSTRUCTONS];
 int tab_imprimantes[NUMBER_IMPRIMANTES];
@@ -77,15 +79,67 @@ void* communication_envois(){
 }
 
 
+void* communication_reception_retour(void* numero_imprimante){
+	int nb_imp = *((int *) numero_imprimante);
+	int id, retour;
+	while(1){
+		int result;
+		result = recevoirOctets(nb_imp, &id, sizeof(int));
+		if(result < 0){
+			perror("Erreur reception\n");
+			exit(1);
+		}
+		result = recevoirOctets(nb_imp, &retour, sizeof(int));
+		if(result < 0){
+			perror("Erreur reception\n");
+			exit(1);
+		}
+
+		sem_wait(&sem_pipe_retour);
+		write(pipe_retour[1], &id, sizeof(int));
+		write(pipe_retour[1], &retour, sizeof(int));
+		sem_post(&sem_pipe_retour);
+	}
+}
 
 void* connexion(){
 	int result;
 	int cmp = 0;
+	pthread_t tab_thread_retour[NUMBER_IMPRIMANTES];
 	while(1){
 		result = accepterCommunication(num_serveur);
 		if(result > 0){
 			printf("Nouvelle Imprimante Connectée au Serveur : %d\n", result);
-			tab_imprimantes[cmp++] = result;
+			tab_imprimantes[cmp] = result;
+			pthread_create(&tab_thread_retour[cmp++], NULL, communication_reception_retour, &result);
+		}
+	}
+}
+
+
+void* gestion_retour(){
+	int id;
+	int retour;
+	while(1){
+		while(read(pipe_retour[0], &id, sizeof(int)) <= 0);
+		while(read(pipe_retour[0], &retour, sizeof(int)) <= 0);
+
+		switch(tab_inst[id].n_commande){
+			case IMPRIMER :
+				if(retour)
+					printf("L'impression ayant pour requête %d s'est terminée avec succès.\n", id);
+				else
+					printf("L'impression ayant pour requête %d n'existe plus.\n", id);
+				break;
+			case ANNULER :
+				break;
+			case ETAT_IMPRIMANTE :
+				break;
+			case ETAT_IMPRESSION :
+				break;
+			default :
+				perror("Erreur commande inconnu\n");
+				break;
 		}
 	}
 }
@@ -112,15 +166,27 @@ int main(int argc, char* argv[]){
 		exit(1);
 	}
 
+	int i;
+	for(i = 0; i < NUMBER_IMPRIMANTES; ++i)
+		tab_imprimantes[i] = -1;
+
+	result = sem_init(&sem_pipe_retour, 0, 1);
+	if(result == -1){
+		perror("Erreur init sem_pipe_retour\n");
+		exit(1);
+	}
 
 
 	pthread_t thread_gestion_instruction, thread_com_envois, thread_connexion;
+	pthread_t thread_gestion_retour;
 	pthread_create(&thread_gestion_instruction, NULL, gestion_instruction, NULL);
 	pthread_create(&thread_com_envois, NULL, communication_envois, NULL);
 	pthread_create(&thread_connexion, NULL, connexion, NULL);
+	pthread_create(&thread_gestion_retour, NULL, gestion_retour, NULL);
 	pthread_join(thread_gestion_instruction, NULL);
 	pthread_join(thread_com_envois, NULL);
 	pthread_join(thread_connexion, NULL);
+	pthread_join(thread_gestion_retour, NULL);
 
 
 	return 0;
