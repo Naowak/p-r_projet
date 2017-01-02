@@ -3,6 +3,8 @@
 
 #include "../communication/communication.h"
 
+#define SERVEUR_NAME "serveur"
+
 typedef enum {IMPRIMER, ANNULER, ETAT_IMPRIMANTE, ETAT_IMPRESSION} commande;
 
 typedef struct instruction_t Instruction;

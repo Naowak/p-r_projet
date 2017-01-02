@@ -1,6 +1,6 @@
 TARGET=serveur
 
-SOURCES= tmp_serveur.c
+SOURCES= tmp_serveur.c ../communication/communication.c
 
 OBJECTS=$(SOURCES:.cpp=.o)
 
