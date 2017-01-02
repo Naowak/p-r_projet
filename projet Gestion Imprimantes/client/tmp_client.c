@@ -29,6 +29,8 @@ sem_t sem_pipe_retour;
 
 char imprimante_name[15];
 
+bool est_distante = false;
+
 
 void* reception(){
 	while(1){
@@ -129,11 +131,16 @@ void* imprimer_envois(){
 				perror("Erreur ouverture file_lecture 1\n");
 				exit(1);
 			}
-			int file_ecriture = open(imprimante_name, O_WRONLY | O_APPEND | O_CREAT, 0666);
-			if(file_lecture == -1){
-				perror("Erreur ouverture file_ecriture 2\n");
-				exit(1);
+			int file_ecriture;
+			if(est_distante){
+				file_ecriture = open(imprimante_name, O_WRONLY | O_APPEND | O_CREAT, 0666);
+				if(file_lecture == -1){
+					perror("Erreur ouverture file_ecriture 2\n");
+					exit(1);
+				}
 			}
+			else
+				file_ecriture = STDOUT_FILENO;
 
 			char c;
 			int result;
@@ -164,17 +171,24 @@ void* imprimer_envois(){
 }
 
 int main(int argc, char* argv[]){
-	if(argc <= 1){
-		printf("Usage : <nom_imprimante>\n");
+	if(argc != 2 && argc != 3){
+		printf("Usage : <nom_imprimante> <optionnel : 1 si distante>\n");
 		exit(1);
 	}
+	char* nom_imprimante = argv[1];
+	if(argc == 3)
+		est_distante = true;
+
 	num_connexion = demanderCommunication(SERVEUR_NAME);
 	if(num_connexion < 0){
 		perror("Erreur Connexion Imprimante\n");
 		exit(1);
 	}
 	else{
-		printf("Imprimante %s Connectée.\n", argv[1]);
+		if(est_distante)
+			printf("Imprimante Distante %s Connectée.\n", nom_imprimante);
+		else
+			printf("Imprimante %s Connectée.\n", nom_imprimante);
 	}
 
 	int result;
@@ -204,7 +218,7 @@ int main(int argc, char* argv[]){
 	for(i = 0; i < NUMBER_IMPRESSION; ++i)
 		est_disponible_tab_impression[i] = true;
 
-	sprintf(imprimante_name, "imprimante_%s", argv[1]);
+	sprintf(imprimante_name, "imprimante_%s", nom_imprimante);
 
 	pthread_t thread_reception, thread_imprimer_reception, thread_imprimer_envois;
 	pthread_t thread_envoyer;
