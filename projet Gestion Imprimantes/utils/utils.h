@@ -3,7 +3,14 @@
 
 #include "../communication/communication.h"
 
-bool connect()
+typedef enum {IMPRIMER, ANNULER, ETAT_IMPRIMANTE, ETAT_IMPRESSION} commande;
 
+typedef struct instruction_t Instruction;
+struct instruction_t{
+	int id;
+	int n_printer;
+	commande n_commande;
+	char* texte;
+};
 
 #endif
