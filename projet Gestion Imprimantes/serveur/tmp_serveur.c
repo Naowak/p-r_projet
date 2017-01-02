@@ -23,35 +23,30 @@ int num_serveur;
 
 
 void* gestion_instruction(){
-	close(pipe_envois[0]);
-	close(pipe_retour[0]);
-	close(pipe_retour[1]);
 	char buffer[SIZE_BUFFER];
 	int n_instruction = 0;
 	while(1){
-		read(STDIN_FILENO, buffer, SIZE_BUFFER);
+		while(read(STDIN_FILENO, buffer, SIZE_BUFFER) <= 0);
 		Instruction i = {n_instruction, atoi(&buffer[0]), atoi(&buffer[2]), buffer + 4};
 		tab_inst[n_instruction++] = i;
 		//printf("gi : %d %d %d %s\n", i.id, i.n_printer, i.n_commande, i.texte);
 		write(pipe_envois[1], &i.id, sizeof(int));
 		write(pipe_envois[1], &i.n_printer, sizeof(int));
 		write(pipe_envois[1], &i.n_commande, sizeof(int));
-		write(pipe_envois[1], i.texte, sizeof(char)*(SIZE_BUFFER - 4));
+		write(pipe_envois[1], i.texte, sizeof(char)*strlen(i.texte));
 		memset(buffer, 0, SIZE_BUFFER);
 	}
 }
 
 void* communication_envois(){
 	int result;
-	close(pipe_envois[1]);
-	close(pipe_retour[0]);
-	close(pipe_retour[1]);
 	Instruction i;
+	i.texte = malloc(sizeof(char)*(SIZE_BUFFER - 4));
 	while(1){
-		read(pipe_envois[0], &i.id, sizeof(int));
-		read(pipe_envois[0], &i.n_printer, sizeof(int));
-		read(pipe_envois[0], &i.n_commande, sizeof(int));
-		read(pipe_envois[0], i.texte, sizeof(char)*(SIZE_BUFFER - 4));
+		while(read(pipe_envois[0], &(i.id), sizeof(int)) <= 0 );
+		while(read(pipe_envois[0], &i.n_printer, sizeof(int)) <= 0);
+		while(read(pipe_envois[0], &i.n_commande, sizeof(int)) <= 0);
+		while(read(pipe_envois[0], i.texte, sizeof(char)*(SIZE_BUFFER - 4)) <= 0);
 
 		result = envoyerOctets(i.n_printer, &i.id, sizeof(int));
 		if(result < 0){
@@ -69,15 +64,12 @@ void* communication_envois(){
 			exit(1);
 		}
 	}
+	free(i.texte);
 }
 
 
 
 void* connexion(){
-	close(pipe_envois[0]);
-	close(pipe_envois[1]);
-	close(pipe_retour[0]);
-	close(pipe_retour[1]);
 	int result;
 	int cmp = 0;
 	while(1){
@@ -113,10 +105,12 @@ int main(int argc, char* argv[]){
 
 
 
-	pthread_t thread_gestion_instruction, thread_connexion;
+	pthread_t thread_gestion_instruction, thread_com_envois, thread_connexion;
 	pthread_create(&thread_gestion_instruction, NULL, gestion_instruction, NULL);
+	pthread_create(&thread_com_envois, NULL, communication_envois, NULL);
 	pthread_create(&thread_connexion, NULL, connexion, NULL);
 	pthread_join(thread_gestion_instruction, NULL);
+	pthread_join(thread_com_envois, NULL);
 	pthread_join(thread_connexion, NULL);
 
 

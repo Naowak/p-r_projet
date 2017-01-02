@@ -3,7 +3,7 @@
 
 #include "../communication/communication.h"
 
-typedef enum {IMPRIMER, ANNULER, ETAT_IMPRIMANTE, ETAT_IMPRESSION} commande;
+typedef enum {IMPRIMER=0, ANNULER=1, ETAT_IMPRIMANTE=2, ETAT_IMPRESSION=3} commande;
 
 typedef struct instruction_t Instruction;
 struct instruction_t{
