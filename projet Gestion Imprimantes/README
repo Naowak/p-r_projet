@@ -1,0 +1,3 @@
+Pour imprimer un fichier :
+
+Ecrire sur l'entrée standard du serveur : "NumeroImprimante 0 NomFichierAImprimer"
