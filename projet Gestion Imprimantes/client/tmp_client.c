@@ -33,6 +33,7 @@ bool est_distante = false;
 
 
 void* reception(){
+	/** Receptionne les messages reçus par le serveur **/
 	while(1){
 		int result;
 		int id, n_commande;
@@ -52,12 +53,10 @@ void* reception(){
 			perror("Erreur reception\n");
 			exit(1);
 		}
-		//printf("rec : %d %d %s\n", id, n_commande, texte);
 
 		switch(n_commande){
 			case IMPRIMER :
 			{
-				//printf("rec:%s\n", texte);
 				write(pipe_com_rec_imp_rec[1], &id, sizeof(int));
 				write(pipe_com_rec_imp_rec[1], texte, sizeof(char)*strlen(texte));
 				break;
@@ -76,6 +75,7 @@ void* reception(){
 }
 
 void* envoyer(){
+	/** Envois les messages de retour d'instruction au serveur **/
 	int id;
 	int retour;
 	int result;
@@ -97,6 +97,7 @@ void* envoyer(){
 }
 
 void* imprimer_reception(){
+	/** Ajoute à la liste d'impression les impressions demandées par le serveur **/
 	while(1){
 		Impression i;
 		i.texte = malloc(sizeof(char)*SIZE_BUFFER_RECEPTION);
@@ -119,6 +120,7 @@ void* imprimer_reception(){
 }
 
 void* imprimer_envois(){
+	/** Imprime et donne son retour (réussi ou non) à la fonction d'envois **/
 	while(1){
 		int indice, retour;
 		while(read(pipe_imp_rec_imp_env[0], &indice, sizeof(int)) <= 0);
@@ -171,6 +173,7 @@ void* imprimer_envois(){
 }
 
 int main(int argc, char* argv[]){
+	/** Initialise les variables et lance les threads **/
 	if(argc != 2 && argc != 3){
 		printf("Usage : <nom_imprimante> <optionnel : 1 si distante>\n");
 		exit(1);

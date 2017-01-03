@@ -25,18 +25,18 @@ int num_serveur;
 
 
 void* gestion_instruction(){
+	/** Lit l'entrée standard et redirige l'instruction vers la fonction d'envois **/
 	char buffer[SIZE_BUFFER];
 	int n_instruction = 0;
 	while(1){
-		//while(read(STDIN_FILENO, buffer, SIZE_BUFFER) <= 0);
-		Instruction i ;//= {n_instruction, atoi(&buffer[0]), atoi(&buffer[2]), buffer + 4};
+		Instruction i ;
 		int tmp_n_commande;
 		i.texte = malloc(sizeof(char)*SIZE_BUFFER);
 		scanf("%d %d %s",&i.n_printer,&tmp_n_commande, i.texte);
 		i.n_commande = (commande) tmp_n_commande;
 		i.id = n_instruction;
 		tab_inst[n_instruction++] = i;
-		//printf("gi : %d %d %d %s\n", i.id, i.n_printer, i.n_commande, i.texte);
+		
 		write(pipe_envois[1], &i.id, sizeof(int));
 		write(pipe_envois[1], &i.n_printer, sizeof(int));
 		write(pipe_envois[1], &i.n_commande, sizeof(int));
@@ -47,6 +47,7 @@ void* gestion_instruction(){
 }
 
 void* communication_envois(){
+	/** Envois les instructions aux imprimantes correspondantes **/
 	int result;
 	Instruction i;
 	i.texte = malloc(sizeof(char)*SIZE_BUFFER);
@@ -80,6 +81,8 @@ void* communication_envois(){
 
 
 void* communication_reception_retour(void* numero_imprimante){
+	/** Receptionne les retours d'instructions des imprimantes. 
+	Il existe un thread tournant sur cette fonction par imprimante **/
 	int nb_imp = *((int *) numero_imprimante);
 	int id, retour;
 	while(1){
@@ -103,6 +106,7 @@ void* communication_reception_retour(void* numero_imprimante){
 }
 
 void* connexion(){
+	/** Gère les demandes de connexions de la part des imprimantes **/
 	int result;
 	int cmp = 0;
 	pthread_t tab_thread_retour[NUMBER_IMPRIMANTES];
@@ -118,6 +122,7 @@ void* connexion(){
 
 
 void* gestion_retour(){
+	/** Gère le retour des instructions données aux imprimantes **/
 	int id;
 	int retour;
 	while(1){
@@ -147,6 +152,7 @@ void* gestion_retour(){
 
 
 int main(int argc, char* argv[]){
+	/** Initialise les variables et lancer les threads **/
 	int result;
 	result = pipe(pipe_envois);
 	if(result < 0 ){
